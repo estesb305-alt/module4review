@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coordinate Pilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E4F2FC; --surface:#FFFFFF; --chart:#F6FBFF; --ink:#1B2B44; --muted:#4E6178;
+  --line:#C3D8E8; --grid:#D3E5F3; --axis:#1B2B44; --quad:#2B6CB0;
+  --point:#E0482A; --sun:#FFC83D; --tint:#FFF3D1; --blue:#2B6CB0; --onBlue:#FFFFFF;
+  --ok:#24804C; --okbg:#E1F5E8; --bad:#C23B25; --badbg:#FDE7E2; --try:#9A6400; --trybg:#FFF3D1;
+  --body:"Atkinson Hyperlegible","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --display:"Fredoka","Trebuchet MS","Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0F1B2D; --surface:#172740; --chart:#13223A; --ink:#EAF2FB; --muted:#A8BBD0;
+    --line:#2C4260; --grid:#22385C; --axis:#D7E4F2; --quad:#7FB5F0;
+    --point:#FF8A6B; --sun:#FFD45E; --tint:#3A3218; --blue:#7FB5F0; --onBlue:#0F1B2D;
+    --ok:#6FD39A; --okbg:#173A2A; --bad:#FF9C8A; --badbg:#43211C; --try:#FFD45E; --trybg:#3A3218;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0F1B2D; --surface:#172740; --chart:#13223A; --ink:#EAF2FB; --muted:#A8BBD0;
+  --line:#2C4260; --grid:#22385C; --axis:#D7E4F2; --quad:#7FB5F0;
+  --point:#FF8A6B; --sun:#FFD45E; --tint:#3A3218; --blue:#7FB5F0; --onBlue:#0F1B2D;
+  --ok:#6FD39A; --okbg:#173A2A; --bad:#FF9C8A; --badbg:#43211C; --try:#FFD45E; --trybg:#3A3218;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:19px;line-height:1.5;-webkit-text-size-adjust:100%}
+[hidden]{display:none !important}
+.app{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
+h1,h2{font-family:var(--display);margin:0;line-height:1.1;font-weight:600}
+p{margin:0 0 .6em}
+.muted{color:var(--muted)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:4px solid var(--blue);outline-offset:2px}
+
+.primary,.ghost{min-height:54px;padding:0 22px;border-radius:16px;font-weight:700;cursor:pointer;font-size:1.05rem;font-family:var(--display)}
+.primary{background:var(--blue);color:var(--onBlue);border:3px solid var(--blue);box-shadow:0 4px 0 color-mix(in srgb, var(--blue) 60%, #000)}
+.primary:active{transform:translateY(2px);box-shadow:0 2px 0 color-mix(in srgb, var(--blue) 60%, #000)}
+.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+.ghost{background:var(--surface);border:2px solid var(--line);color:var(--ink)}
+.small{min-height:46px;padding:0 14px;font-size:.95rem}
+
+/* Board */
+.top-actions{display:flex;justify-content:flex-end;margin-bottom:6px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:18px;align-items:center;margin-bottom:20px}
+.hero h1{font-size:clamp(2.6rem,9vw,4.4rem);font-weight:700}
+.lede{font-size:1.1rem;max-width:50ch;margin-top:10px}
+.motto{display:inline-block;background:var(--tint);border:2px dashed var(--sun);border-radius:14px;padding:8px 14px;font-weight:700}
+.hero-art{background:var(--chart);border:3px solid var(--line);border-radius:22px;padding:8px;cursor:pointer}
+.hero-art svg{display:block;width:100%;height:auto}
+@media (max-width:700px){.hero{grid-template-columns:1fr}.hero-art{max-width:300px}}
+.pilot{background:var(--surface);border:3px solid var(--line);border-radius:20px;padding:16px 18px;margin-bottom:22px;max-width:520px}
+.pilot label{display:block;font-weight:700;margin-bottom:6px;font-family:var(--display);font-size:1.15rem}
+.field-msg{color:var(--bad);margin:6px 0 0;min-height:1.2em;font-size:1rem;font-weight:700}
+input[type=text]{width:100%;min-height:54px;padding:0 14px;border:3px solid var(--line);border-radius:14px;background:var(--chart);font-size:1.2rem}
+input[type=text]:focus{border-color:var(--blue);outline:none}
+.missions{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:14px}
+.mission{display:grid;grid-template-columns:4rem 1fr auto;gap:14px;align-items:center;padding:16px 18px;background:var(--surface);border:3px solid var(--line);border-radius:20px}
+.m-badge{width:3.4rem;height:3.4rem;border-radius:50%;display:grid;place-items:center;font-size:1.8rem;background:var(--tint);border:3px solid var(--sun)}
+.mission.locked{opacity:.7}
+.mission.locked .m-badge{background:transparent;border-color:var(--line);filter:grayscale(1)}
+.mission.passed{border-color:var(--ok)}
+.m-info h2{font-size:1.5rem}
+.m-info p{margin:0}
+.m-status{font-size:1rem;color:var(--muted);margin-top:4px !important;font-weight:700}
+.mission.passed .m-status{color:var(--ok)}
+@media (max-width:620px){.mission{grid-template-columns:3.6rem 1fr}.mission > button{grid-column:1 / -1}}
+.teacher{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:4px 18px;max-width:520px;font-size:1rem}
+.teacher summary{cursor:pointer;font-weight:700;min-height:46px;display:flex;align-items:center}
+.teacher .row{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+.teacher .row input{flex:1 1 180px}
+
+/* Game */
+.game-bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.g-mission{font-family:var(--display);font-weight:700;font-size:1.8rem;line-height:1}
+.g-count{color:var(--muted);font-weight:700}
+.stats{display:flex;gap:10px;font-weight:700;flex-wrap:wrap}
+.chip{background:var(--surface);border:2px solid var(--line);border-radius:999px;padding:4px 14px}
+.bar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.progress{display:flex;gap:8px;margin-bottom:14px}
+.progress span{flex:1;height:12px;border-radius:6px;background:var(--line)}
+.progress span.done-ok{background:var(--ok)}
+.progress span.done-bad{background:var(--bad)}
+.progress span.now{background:var(--sun)}
+.game-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,430px);gap:20px;align-items:start}
+@media (max-width:860px){.game-body{grid-template-columns:1fr}}
+.chart{background:var(--chart);border:3px solid var(--line);border-radius:22px;padding:6px}
+.chart svg{display:block;width:100%;height:auto;max-height:78vh;user-select:none;-webkit-user-select:none}
+.chart svg.pickable{cursor:pointer;touch-action:none}
+.readout{text-align:center;margin:4px 0;font-weight:700;font-size:1.15rem;min-height:1.6em}
+.panel{background:var(--surface);border:3px solid var(--line);border-radius:22px;padding:20px}
+.prompt-row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.panel h2{font-size:1.65rem;margin-bottom:10px}
+.speak{flex:none;min-width:52px;min-height:52px;border-radius:14px;border:2px solid var(--line);background:var(--chart);font-size:1.4rem;cursor:pointer}
+.setlist{font-size:1.25rem;font-weight:700;word-break:break-word}
+.choices{display:grid;gap:12px;margin:12px 0;grid-template-columns:1fr 1fr}
+.choice{min-height:60px;padding:8px 12px;border:3px solid var(--line);border-radius:16px;background:var(--chart);cursor:pointer;font-weight:700;font-size:1.2rem;font-family:var(--display)}
+.choice[aria-pressed="true"]{border-color:var(--blue);background:var(--tint)}
+.choice:disabled{cursor:default}
+.choice.ruled-out{opacity:.45;text-decoration:line-through}
+.choice.right{border-color:var(--ok);background:var(--okbg);opacity:1;text-decoration:none}
+.field{margin:12px 0}
+.field label{display:block;font-weight:700;margin-bottom:4px;font-family:var(--display);font-size:1.15rem}
+.field label small{font-family:var(--body);font-weight:400;color:var(--muted);font-size:.9rem}
+.brace-wrap{display:flex;align-items:center;gap:6px}
+.brace-wrap span{font-size:2rem;line-height:1;color:var(--muted);font-family:var(--display)}
+.form-msg{color:var(--bad);font-weight:700;min-height:1.2em;margin:8px 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.actions .primary{flex:1 1 auto}
+.hint{margin-top:14px;padding:12px 14px;border-radius:14px;border:3px dashed var(--sun);background:var(--tint)}
+.feedback{margin-top:14px;padding:14px 16px;border-radius:16px;border:3px solid}
+.feedback.ok{background:var(--okbg);border-color:var(--ok)}
+.feedback.bad{background:var(--badbg);border-color:var(--bad)}
+.feedback.retry{background:var(--trybg);border-color:var(--try)}
+.fb-title{font-family:var(--display);font-weight:700;font-size:1.6rem;display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.fb-stars{font-size:1.25rem}
+.feedback.ok .fb-stars{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.explain{margin-top:10px;padding-top:10px;border-top:2px solid var(--line)}
+.ex-title{font-weight:700;font-family:var(--display);font-size:1.15rem}
+.explain ol{margin:0 0 .6em;padding-left:1.4em}
+.explain li{margin-bottom:4px}
+#nextBtn{margin-top:14px;width:100%}
+
+/* SVG */
+.gl{stroke:var(--grid);stroke-width:.05}
+.axis{stroke:var(--axis);stroke-width:.08}
+.axis-arrow{fill:var(--axis)}
+.tick{fill:var(--ink);font-family:var(--body);font-weight:700}
+.axis-name{fill:var(--blue);font-family:var(--display);font-weight:700}
+.quad{fill:var(--quad);opacity:.18;font-family:var(--display);font-weight:700}
+.pt{fill:var(--point);stroke:var(--chart);stroke-width:.07}
+.pt.ok{fill:var(--ok)}
+.sel-ring{fill:none;stroke:var(--point);stroke-width:.11}
+.guide{stroke:var(--point);stroke-width:.06;stroke-dasharray:.2 .14}
+.trace{fill:none;stroke:var(--blue);stroke-width:.1;stroke-dasharray:.25 .16;stroke-linecap:round}
+.plane .body{fill:var(--sun);stroke:var(--ink);stroke-width:.09;stroke-linejoin:round}
+.plane .win{fill:var(--blue)}
+.pt-label{fill:var(--ink);font-family:var(--body);font-weight:700;paint-order:stroke;stroke:var(--chart);stroke-width:.2px;stroke-linejoin:round}
+.bad-x{stroke:var(--bad);stroke-width:.14;stroke-linecap:round}
+.hero-note{fill:var(--ok);font-family:var(--body);font-weight:700}
+
+/* Briefing */
+.b-tag{display:inline-block;background:var(--tint);border:2px solid var(--sun);border-radius:999px;padding:2px 12px;font-weight:700;font-size:.95rem;margin-bottom:8px}
+.brief-panel h2{font-size:1.9rem;margin-bottom:10px}
+.qcards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.qcard{border:3px solid;border-radius:16px;padding:10px 12px;background:var(--chart);display:flex;flex-direction:column;font-size:1rem}
+.qcard b{font-family:var(--display);font-size:1.25rem}
+.qcard .signs{font-weight:700;font-size:1.15rem}
+.qcard.q1{border-color:#3B82F6}.qcard.q2{border-color:#22A061}.qcard.q3{border-color:#D99A00}.qcard.q4{border-color:#D3368F}
+.qfill{opacity:.16}.qfill.q1{fill:#3B82F6}.qfill.q2{fill:#22A061}.qfill.q3{fill:#D99A00}.qfill.q4{fill:#D3368F}
+.qbig{font-family:var(--display);font-weight:700;fill:var(--ink);opacity:.75}
+.qsign{font-family:var(--body);font-weight:700;fill:var(--ink)}
+.note{background:var(--tint);border-radius:14px;padding:10px 14px;font-weight:700}
+.dr-card{border:3px solid;border-radius:16px;padding:12px 14px;margin:10px 0;background:var(--chart)}
+.dr-card.dom{border-color:var(--blue)}.dr-card.rng{border-color:var(--ok)}
+.dr-card b.k{font-family:var(--display);font-size:1.3rem}
+.dr-card.dom b.k{color:var(--blue)}.dr-card.rng b.k{color:var(--ok)}
+.dr-card .big{font-family:var(--display);font-size:1.6rem;font-weight:700;margin-top:4px}
+.dline{stroke:var(--blue);stroke-width:.08;stroke-dasharray:.22 .15}
+.rline{stroke:var(--ok);stroke-width:.08;stroke-dasharray:.22 .15}
+.dring{fill:none;stroke:var(--blue);stroke-width:.12}
+.rring{fill:none;stroke:var(--ok);stroke-width:.12}
+.brief-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.brief-actions .primary{flex:1 1 auto}
+.name-tip{color:var(--muted);font-size:1rem;margin:6px 0 0}
+
+.credit{margin-top:32px;padding-top:14px;border-top:2px solid var(--line);text-align:center;color:var(--muted);font-size:.9rem}
+
+/* Results */
+.cert{max-width:620px;margin:10px auto 18px;background:var(--surface);border:4px solid var(--sun);border-radius:26px;padding:24px 26px 18px;text-align:center}
+.cert-top{font-size:2.6rem;margin:0}
+.cert h1{font-size:clamp(2rem,7vw,3rem);margin:4px 0 6px}
+.cert .stars-big{font-size:1.8rem;letter-spacing:.06em;margin-bottom:12px}
+.cert dl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:0 auto 14px;text-align:left;max-width:400px}
+.cert dt{color:var(--muted);font-weight:700}
+.cert dd{margin:0;font-weight:700;font-size:1.1rem}
+.results-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:620px;margin:0 auto}
+.shot{text-align:center;color:var(--muted);margin-top:14px;font-weight:700}
+@media (prefers-reduced-motion: reduce){ .feedback.ok .fb-stars{animation:none} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section id="board">
+    <div class="top-actions"><button class="ghost small" type="button" data-theme-toggle>Dark mode</button></div>
+    <div class="hero">
+      <div>
+        <h1>Coordinate Pilot</h1>
+        <p class="lede">Three quick missions on the coordinate plane: plot points, name quadrants, and find domain and range. Get 4 out of 5 right to unlock the next mission.</p>
+        <p class="motto">✈️ Across first (x), then up or down (y)!</p>
+      </div>
+      <div class="hero-art" title="Tap to fly again"><svg id="heroSvg" viewBox="-4 -4 8 8" role="img" aria-label="A plane flies 3 left, then 2 up, to land on the point (−3, 2)"></svg></div>
+    </div>
+
+    <div class="pilot">
+      <label for="pilotName">Your first name</label>
+      <input type="text" id="pilotName" autocomplete="given-name" placeholder="First name only" maxlength="30">
+      <p class="name-tip">👋 Just your first name, please. No last name needed!</p>
+      <p class="field-msg" id="nameMsg" role="status"></p>
+    </div>
+
+    <ol class="missions" id="missions"></ol>
+
+    <details class="teacher">
+      <summary>Teacher access</summary>
+      <div class="row">
+        <input type="text" id="teacherCode" placeholder="Teacher code" autocomplete="off" aria-label="Teacher code">
+        <button class="primary small" type="button" id="unlockBtn">Unlock all missions</button>
+      </div>
+      <div class="row"><button class="ghost small" type="button" id="resetBtn">Reset progress on this device</button></div>
+      <p id="teacherMsg" role="status" class="muted"></p>
+    </details>
+  </section>
+
+  <section id="game" hidden>
+    <div class="game-bar">
+      <div>
+        <div class="g-mission" id="gMission"></div>
+        <div class="g-count" id="gCount"></div>
+      </div>
+      <div class="stats" aria-live="polite">
+        <span class="chip">✅ <span id="sCorrect">0</span> right</span>
+        <span class="chip">⭐ <span id="sStars">0</span> stars</span>
+      </div>
+      <div class="bar-actions">
+        <button class="ghost small" type="button" data-theme-toggle>Dark mode</button>
+        <button class="ghost small" type="button" id="quitBtn">Quit mission</button>
+      </div>
+    </div>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+
+    <div class="game-body">
+      <div class="chart">
+        <svg id="grid" role="img" aria-label="Coordinate plane from negative 6 to 6 on both axes"></svg>
+        <p class="readout" id="readout" aria-live="polite"></p>
+      </div>
+      <div class="panel">
+        <div class="prompt-row">
+          <h2 id="qPrompt"></h2>
+          <button class="speak" type="button" id="speakBtn" aria-label="Read the question out loud" title="Read to me">🔊</button>
+        </div>
+        <div id="qExtra"></div>
+        <div id="qControls"></div>
+        <p class="form-msg" id="formMsg" role="status"></p>
+        <div class="actions">
+          <button class="ghost" type="button" id="hintBtn">💡 Hint</button>
+          <button class="primary" type="button" id="submitBtn">Check</button>
+        </div>
+        <div class="hint" id="hintBox" hidden></div>
+        <div class="feedback" id="feedback" hidden></div>
+        <button class="primary" type="button" id="nextBtn" hidden>Next question</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="briefing" hidden>
+    <div class="game-bar">
+      <div><div class="g-mission" id="bMission"></div><div class="g-count">Pilot briefing</div></div>
+      <div class="bar-actions"><button class="ghost small" type="button" data-theme-toggle>Dark mode</button></div>
+    </div>
+    <div class="game-body">
+      <div class="chart"><svg id="briefSvg" role="img"></svg></div>
+      <div class="panel brief-panel">
+        <div class="prompt-row">
+          <div><span class="b-tag">📋 Before you fly</span><h2 id="bTitle"></h2></div>
+          <button class="speak" type="button" id="bSpeak" aria-label="Read the briefing out loud" title="Read to me">🔊</button>
+        </div>
+        <div id="bText"></div>
+        <div class="brief-actions">
+          <button class="primary" type="button" id="bStart">I’m ready! Start mission</button>
+          <button class="ghost" type="button" id="bBack">Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results" hidden>
+    <div class="cert">
+      <p class="cert-top" id="rIcon" aria-hidden="true">🏅</p>
+      <h1 id="rTitle"></h1>
+      <div class="stars-big" id="rStarsBig" aria-hidden="true"></div>
+      <dl>
+        <dt>Pilot</dt><dd id="rName"></dd>
+        <dt>Mission</dt><dd id="rMission"></dd>
+        <dt>Correct</dt><dd id="rCorrect"></dd>
+        <dt>Stars</dt><dd id="rStars"></dd>
+        <dt>Finished</dt><dd id="rDate"></dd>
+      </dl>
+      <p id="rNote"></p>
+    </div>
+    <div class="results-actions">
+      <button class="primary" type="button" id="nextMissionBtn">Next mission</button>
+      <button class="ghost" type="button" id="againBtn">Play again</button>
+      <button class="ghost" type="button" id="boardBtn">Mission list</button>
+    </div>
+    <p class="shot">📸 Take a screenshot of this certificate and turn it in on Canvas.</p>
+  </section>
+
+  <footer class="credit">Learning activity created by B.Estes assisted with AI, used with permission.</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = arr => { const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const nz = (lo,hi) => { let v; do { v=rand(lo,hi); } while (v===0); return v; };
+const fmt = n => (n<0?'−':'') + Math.abs(n);
+const P = (x,y) => `(${fmt(x)},\u00A0${fmt(y)})`;
+const units = n => { const a=Math.abs(n); return a===1?'1 unit':a+' units'; };
+const listNums = a => a.map(fmt).join(', ');
+const uniqSort = a => [...new Set(a)].sort((p,q)=>p-q);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const N = 5, PASS = 4, MAX = 6;
+
+const LEVELS = [
+  {id:1, name:'Waypoint Drop', icon:'📍', desc:'Plot points in all four quadrants.'},
+  {id:2, name:'Radar Check',   icon:'📡', desc:'Name the quadrant or axis where a point lives.'},
+  {id:3, name:'Flight Zone',   icon:'🗺️', desc:'Find the domain and range of a set of points.'}
+];
+const TEACHER_CODE = 'PILOT2026';
+
+/* Storage */
+const KEY = 'coordinatePilot3.v1';
+let store = {unlocked:1, best:{}, passed:{}, name:'', theme:null};
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) store = Object.assign(store, s); } catch(e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {} }
+
+/* Theme */
+function isDark(){ return store.theme ? store.theme==='dark' : (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); }
+function applyTheme(){
+  if (store.theme) document.documentElement.dataset.theme = store.theme; else delete document.documentElement.dataset.theme;
+  document.querySelectorAll('[data-theme-toggle]').forEach(b => b.textContent = isDark() ? '☀️ Light mode' : '🌙 Dark mode');
+}
+document.querySelectorAll('[data-theme-toggle]').forEach(b => b.addEventListener('click', () => { store.theme = isDark()?'light':'dark'; save(); applyTheme(); }));
+applyTheme();
+function show(id){ ['board','briefing','game','results'].forEach(s => $('#'+s).hidden = (s!==id)); window.scrollTo(0,0); }
+
+/* SVG helpers */
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for (const k in attrs) e.setAttribute(k,attrs[k]); if (parent) parent.appendChild(e); return e; }
+function txt(parent,x,y,s,attrs){ const t=el('text',Object.assign({x,y},attrs||{}),parent); t.textContent=s; return t; }
+function arrowHead(tx,ty,dx,dy,cls,parent,size){
+  const len=Math.hypot(dx,dy), ux=dx/len, uy=dy/len, bx=tx-ux*size, by=ty-uy*size, px=-uy*size*.5, py=ux*size*.5;
+  el('polygon',{points:`${tx},${ty} ${bx+px},${by+py} ${bx-px},${by-py}`,class:cls},parent);
+}
+function drawPlane(parent){
+  const g=el('g',{class:'plane'},parent);
+  el('path',{class:'body',d:'M0,-1 C.18,-.9 .2,-.6 .2,-.3 L1,.15 L1,.38 L.2,.22 L.18,.62 L.45,.8 L.45,.95 L0,.86 L-.45,.95 L-.45,.8 L-.18,.62 L-.2,.22 L-1,.38 L-1,.15 L-.2,.3 L-.2,-.3 C-.2,-.6 -.18,-.9 0,-1 Z'},g);
+  el('circle',{class:'win',cx:0,cy:-.55,r:.11},g);
+  return g;
+}
+const heading = (dx,dy) => dx>0?90:dx<0?-90:dy>0?0:180;
+/* Fly from the origin: across first, then up or down */
+function animateFlight(layer,x1,y1,scale){
+  const trace=el('polyline',{class:'trace',points:'0,0'},layer), plane=drawPlane(layer);
+  const place=(x,y,deg)=>plane.setAttribute('transform',`translate(${x} ${-y}) rotate(${deg}) scale(${scale})`);
+  const legs=[]; if (x1) legs.push({f:[0,0],t:[x1,0]}); if (y1) legs.push({f:[x1,0],t:[x1,y1]});
+  if (!legs.length){ place(0,0,0); return null; }
+  const lens=legs.map(l=>Math.hypot(l.t[0]-l.f[0],l.t[1]-l.f[1])), total=lens.reduce((a,b)=>a+b,0);
+  const dur=Math.min(1800,Math.max(800,total*170));
+  const render=frac=>{
+    let d=frac*total; const pts=[[0,0]]; let pos=[0,0], head=0;
+    for (let i=0;i<legs.length;i++){
+      const l=legs[i]; head=heading(l.t[0]-l.f[0],l.t[1]-l.f[1]);
+      if (d<=lens[i]){ const f=d/lens[i]; pos=[l.f[0]+(l.t[0]-l.f[0])*f, l.f[1]+(l.t[1]-l.f[1])*f]; pts.push(pos); break; }
+      d-=lens[i]; pos=l.t; pts.push(l.t);
+    }
+    trace.setAttribute('points',pts.map(p=>p[0]+','+(-p[1])).join(' ')); place(pos[0],pos[1],head);
+  };
+  if (reduceMotion){ render(1); return null; }
+  const t0=performance.now(), ref={id:null};
+  const step=now=>{ const f=Math.min(1,(now-t0)/dur); render(f); ref.id = f<1 ? requestAnimationFrame(step) : null; };
+  ref.id=requestAnimationFrame(step); return ref;
+}
+function buildPlane(svgEl, R, fs, withQuads){
+  const base=el('g',{},svgEl);
+  for (let i=-R;i<=R;i++){ if (!i) continue; el('line',{x1:i,y1:-R,x2:i,y2:R,class:'gl'},base); el('line',{x1:-R,y1:i,x2:R,y2:i,class:'gl'},base); }
+  const A=R+.6;
+  el('line',{x1:-A,y1:0,x2:A,y2:0,class:'axis'},base); el('line',{x1:0,y1:-A,x2:0,y2:A,class:'axis'},base);
+  const h=fs*.75;
+  arrowHead(A+.3,0,1,0,'axis-arrow',base,h); arrowHead(-A-.3,0,-1,0,'axis-arrow',base,h);
+  arrowHead(0,-A-.3,0,-1,'axis-arrow',base,h); arrowHead(0,A+.3,0,1,'axis-arrow',base,h);
+  for (let i=-R;i<=R;i++){
+    if (!i) continue;
+    txt(base,i,fs*1.25,fmt(i),{'text-anchor':'middle','font-size':fs,class:'tick'});
+    txt(base,-fs*.45,-i+fs*.35,fmt(i),{'text-anchor':'end','font-size':fs,class:'tick'});
+  }
+  txt(base,fs*.35,fs*1.25,'0',{'text-anchor':'start','font-size':fs,class:'tick'});
+  txt(base,A+.25,-fs*.7,'x',{'text-anchor':'middle','font-size':fs*1.4,class:'axis-name'});
+  txt(base,fs*.6,-A-.15,'y',{'font-size':fs*1.4,class:'axis-name'});
+  let quadG=null;
+  if (withQuads){
+    quadG=el('g',{},svgEl); const m=R/2+.5;
+    [['I',m,-m],['II',-m,-m],['III',-m,m],['IV',m,m]].forEach(([t,x,y])=>txt(quadG,x,y+R*.17,t,{'text-anchor':'middle','font-size':R*.5,class:'quad'}));
+  }
+  return quadG;
+}
+
+/* Hero */
+(function(){
+  const s=$('#heroSvg'); buildPlane(s,3,.42,true);
+  el('circle',{cx:-3,cy:-2,r:.2,class:'pt'},s);
+  txt(s,-2.7,-2.35,'(−3, 2)',{'font-size':.5,class:'pt-label'});
+  txt(s,-1.5,-.25,'left 3',{'text-anchor':'middle','font-size':.36,class:'hero-note'});
+  txt(s,-2.8,-1,'up 2',{'font-size':.36,class:'hero-note'});
+  const layer=el('g',{},s);
+  const go=()=>{ layer.innerHTML=''; animateFlight(layer,-3,2,.32); };
+  go(); $('.hero-art').addEventListener('click',go);
+})();
+
+/* Game grid: −6 to 6 */
+const svg=$('#grid');
+svg.setAttribute('viewBox','-7.6 -7.6 15.2 15.2');
+const quadG=buildPlane(svg,MAX,.48,true);
+const dyn=el('g',{},svg), selG=el('g',{},svg);
+let animRef=null;
+function clearDyn(){ if (animRef&&animRef.id) cancelAnimationFrame(animRef.id); animRef=null; dyn.innerHTML=''; selG.innerHTML=''; }
+function dot(x,y,cls){ el('circle',{cx:x,cy:-y,r:.24,class:cls||'pt'},dyn); }
+function labelAt(x,y,text,below){
+  const right=x>3, down = below ? y>-5 : (y<0 ? y>-5 : y>=5);
+  txt(dyn,x+(right?-.38:.38),-y+(down?.85:-.38),text,{'text-anchor':right?'end':'start','font-size':.52,class:'pt-label'});
+}
+function markWrong(x,y){
+  const s=.3;
+  el('line',{x1:x-s,y1:-y-s,x2:x+s,y2:-y+s,class:'bad-x'},dyn); el('line',{x1:x-s,y1:-y+s,x2:x+s,y2:-y-s,class:'bad-x'},dyn);
+  labelAt(x,y,'yours',true);
+}
+function fly(x,y){ const layer=el('g',{},dyn); animRef=animateFlight(layer,x,y,.45); }
+
+/* Quadrant facts */
+const SIGN={I:[1,1],II:[-1,1],III:[-1,-1],IV:[1,-1]};
+function classify(x,y){ if (!x&&!y) return 'origin'; if (!y) return 'x-axis'; if (!x) return 'y-axis'; return x>0?(y>0?'I':'IV'):(y>0?'II':'III'); }
+const placeName = c => c==='origin'?'at the origin':c.includes('axis')?`on the ${c}`:`in Quadrant ${c}`;
+const SIGN_TIP = 'Quadrant I (+, +) is top right. Go counterclockwise: II (−, +), III (−, −), IV (+, −).';
+
+/* Questions */
+function quadPoint(q){ const s=SIGN[q]; return {x:s[0]*rand(1,MAX), y:s[1]*rand(1,MAX)}; }
+function genPlot(kind){
+  let p;
+  if (kind==='axis') p = pick([{x:0,y:0},{x:nz(-MAX,MAX),y:0},{x:0,y:nz(-MAX,MAX)}]);
+  else do { p=quadPoint(kind); } while (Math.abs(p.x)===Math.abs(p.y));
+  return {type:'plot', x:p.x, y:p.y};
+}
+function genQuad(kind, mode){
+  let p = kind==='x-axis' ? {x:nz(-MAX,MAX),y:0} : kind==='y-axis' ? {x:0,y:nz(-MAX,MAX)} : quadPoint(kind);
+  return {type:'quad', x:p.x, y:p.y, mode, answer:classify(p.x,p.y)};
+}
+function genSet(showList){
+  const n=rand(3,4);
+  const pool=[]; for (let i=-MAX;i<=MAX;i++) pool.push(i);
+  const xs=shuffle(pool).slice(0,n), ys=xs.map(()=>rand(-MAX,MAX));
+  if (Math.random()<.7){ const i=rand(0,n-1), j=(i+rand(1,n-1))%n; ys[j]=ys[i]; }
+  return {type:'set', pts:xs.map((x,i)=>({x,y:ys[i]})), showList, dom:uniqSort(xs), rng:uniqSort(ys)};
+}
+function buildQuestions(l){
+  if (l===1) return shuffle(['I','II','III','IV','axis']).map(genPlot);
+  if (l===2) return shuffle(['I','II','III','IV',pick(['x-axis','y-axis'])]).map((k,i)=>genQuad(k, i%2?'text':'graph'));
+  return Array.from({length:N},(_,i)=>genSet(i<3));
+}
+
+/* Explanations and hints */
+function plotSteps(x,y){
+  const a = x===0 ? 'x is 0, so don’t move left or right.' : `x is ${fmt(x)}, so go ${x>0?'right':'left'} ${units(x)}.`;
+  const b = y===0 ? 'y is 0, so stay on the x-axis.' : `y is ${fmt(y)}, so go ${y>0?'up':'down'} ${units(y)}.`;
+  return `<ol><li>Start at the origin, (0,\u00A00).</li><li>${a}</li><li>${b}</li><li>You land at ${P(x,y)}. Watch the plane fly it!</li></ol>`;
+}
+function quadSteps(x,y){
+  const c=classify(x,y);
+  if (c==='x-axis') return `<p>y is 0, so ${P(x,y)} sits right on the x-axis. Points on an axis are not in any quadrant.</p>`;
+  if (c==='y-axis') return `<p>x is 0, so ${P(x,y)} sits right on the y-axis. Points on an axis are not in any quadrant.</p>`;
+  return `<p>x is ${fmt(x)}, which is ${x>0?'positive (right)':'negative (left)'}. y is ${fmt(y)}, which is ${y>0?'positive (up)':'negative (down)'}. ${x>0?'Right':'Left'} and ${y>0?'up':'down'} is Quadrant ${c}.</p><p>${SIGN_TIP}</p>`;
+}
+function setSteps(q){
+  const counts={}; q.pts.forEach(p=>counts[p.y]=(counts[p.y]||0)+1);
+  const dups=Object.keys(counts).filter(k=>counts[k]>1).map(Number);
+  return `<p><b>Domain</b> = all the x-values (first numbers): {${listNums(q.dom)}}</p><p><b>Range</b> = all the y-values (second numbers): {${listNums(q.rng)}}</p>`
+    + (dups.length ? `<p>${listNums(dups)} shows up more than once, but you only list it once.</p>` : '');
+}
+const HINTS = {
+  plot: q => q.x===0 ? `x is 0, so don’t move left or right. Just go ${q.y>0?'up':'down'} ${Math.abs(q.y)}.`
+            : q.y===0 ? `y is 0, so stay on the x-axis. Just go ${q.x>0?'right':'left'} ${Math.abs(q.x)}.`
+            : `Start at the origin. Go ${q.x>0?'right':'left'} ${Math.abs(q.x)} first (negative x means left). Then go ${q.y>0?'up':'down'} ${Math.abs(q.y)}.`,
+  quad: () => SIGN_TIP + ' If a number is 0, the point is on an axis.',
+  set: () => 'Domain = x-values, the first number in each pair. Range = y-values, the second number. List each number only once.'
+};
+
+/* State */
+let run=null;
+const formMsg = t => { $('#formMsg').textContent=t; };
+const setPrompt = t => { $('#qPrompt').textContent=t; };
+const extra = h => { $('#qExtra').innerHTML=h; };
+function updateStats(){ $('#sCorrect').textContent=run.correct; $('#sStars').textContent=run.stars; }
+function drawProgress(){ $('#progress').innerHTML = run.qs.map((_,i)=>`<span class="${run.results[i]===true?'done-ok':run.results[i]===false?'done-bad':i===run.i?'now':''}"></span>`).join(''); }
+
+function startLevel(lvl){
+  const name=$('#pilotName').value.trim();
+  if (!name){ $('#nameMsg').textContent='Type your first name so it goes on your certificate.'; $('#pilotName').focus(); return; }
+  $('#nameMsg').textContent=''; store.name=name; save();
+  if (BRIEF[lvl]) showBriefing(lvl); else beginLevel(lvl);
+}
+function beginLevel(lvl){
+  stopSpeech();
+  run={level:lvl, qs:buildQuestions(lvl), i:0, stars:0, correct:0, results:[]};
+  show('game'); renderQ();
+}
+
+/* Briefings for missions 2 and 3 */
+const BRIEF = {
+  2: {
+    title: 'The four quadrants',
+    label: 'Coordinate plane split into four colored quadrants, numbered I, II, III, IV counterclockwise from the top right, with their signs',
+    draw(s){
+      [['q1',0,-6.4],['q2',-6.4,-6.4],['q3',-6.4,0],['q4',0,0]].forEach(([c,x,y])=>el('rect',{x,y,width:6.4,height:6.4,class:'qfill '+c},s));
+      buildPlane(s,MAX,.48,false);
+      [['I',1,1,'(+, +)'],['II',-1,1,'(−, +)'],['III',-1,-1,'(−, −)'],['IV',1,-1,'(+, −)']].forEach(([n,sx,sy,sg])=>{
+        txt(s,sx*3.4,-(sy*3.6)+.55,n,{'text-anchor':'middle','font-size':1.7,class:'qbig'});
+        txt(s,sx*3.4,-(sy*3.6)+1.75,sg,{'text-anchor':'middle','font-size':.75,class:'qsign'});
+      });
+    },
+    html: `<p>The <b>x-axis</b> and the <b>y-axis</b> cross at the origin, (0,\u00A00). They split the plane into four parts called <b>quadrants</b>.</p>
+      <p>Quadrants are numbered with Roman numerals. Start at the top right and go counterclockwise ↺.</p>
+      <div class="qcards">
+        <div class="qcard q2"><b>Quadrant II</b><span class="signs">x −, y +</span><span>left and up</span><span>Example: (−3,\u00A04)</span></div>
+        <div class="qcard q1"><b>Quadrant I</b><span class="signs">x +, y +</span><span>right and up</span><span>Example: (3,\u00A04)</span></div>
+        <div class="qcard q3"><b>Quadrant III</b><span class="signs">x −, y −</span><span>left and down</span><span>Example: (−3,\u00A0−4)</span></div>
+        <div class="qcard q4"><b>Quadrant IV</b><span class="signs">x +, y −</span><span>right and down</span><span>Example: (3,\u00A0−4)</span></div>
+      </div>
+      <p class="note">⚠️ If x or y is 0, the point sits on an axis, not in a quadrant. (5,\u00A00) is on the x-axis. (0,\u00A0−2) is on the y-axis.</p>`
+  },
+  3: {
+    title: 'Domain and range',
+    label: 'The points (−3, 2), (1, 5), and (4, 2) with dashed lines down to their x-values and across to their y-values',
+    draw(s){
+      buildPlane(s,MAX,.48,false);
+      const pts=[[-3,2],[1,5],[4,2]];
+      pts.forEach(([x,y])=>{ el('line',{x1:x,y1:-y,x2:x,y2:0,class:'dline'},s); el('line',{x1:x,y1:-y,x2:0,y2:-y,class:'rline'},s); });
+      [-3,1,4].forEach(x=>el('circle',{cx:x,cy:0,r:.42,class:'dring'},s));
+      [2,5].forEach(y=>el('circle',{cx:0,cy:-y,r:.42,class:'rring'},s));
+      pts.forEach(([x,y])=>{ el('circle',{cx:x,cy:-y,r:.26,class:'pt'},s); txt(s,x+(x>3?-.4:.4),-y-.45,P(x,y),{'text-anchor':x>3?'end':'start','font-size':.55,class:'pt-label'}); });
+    },
+    html: `<p>Every point is an ordered pair: (x,\u00A0y). Here are three points:</p>
+      <p class="setlist">(−3,\u00A02), (1,\u00A05), (4,\u00A02)</p>
+      <div class="dr-card dom"><b class="k">Domain</b> = all the <b>x-values</b> (the first numbers). Follow the blue lines up or down to the x-axis.<div class="big">{−3, 1, 4}</div></div>
+      <div class="dr-card rng"><b class="k">Range</b> = all the <b>y-values</b> (the second numbers). Follow the green lines over to the y-axis.<div class="big">{2, 5}</div></div>
+      <p>2 shows up twice, but you only list it once.</p>
+      <p class="note">🧠 Memory trick: D comes before R, and x comes before y. So <b>Domain = x</b> and <b>Range = y</b>.</p>`
+  }
+};
+function showBriefing(lvl){
+  const b=BRIEF[lvl], s=$('#briefSvg');
+  s.innerHTML=''; s.setAttribute('viewBox','-7.6 -7.6 15.2 15.2'); s.setAttribute('aria-label',b.label);
+  b.draw(s);
+  $('#bMission').textContent=`${LEVELS[lvl-1].icon} ${LEVELS[lvl-1].name}`;
+  $('#bTitle').textContent=b.title;
+  $('#bText').innerHTML=b.html;
+  $('#bStart').onclick=()=>beginLevel(lvl);
+  show('briefing');
+  $('#bStart').focus({preventScroll:true});
+}
+$('#bBack').addEventListener('click',()=>{ stopSpeech(); renderBoard(); show('board'); });
+$('#bSpeak').addEventListener('click',()=>{
+  if (!('speechSynthesis' in window)) return;
+  stopSpeech();
+  const t=($('#bTitle').textContent+'. '+$('#bText').innerText).replace(/−/g,' negative ').replace(/[(){}]/g,' ').replace(/↺|⚠️|🧠/g,' ');
+  const u=new SpeechSynthesisUtterance(t); u.rate=.92; speechSynthesis.speak(u);
+});
+
+const RENDER = {
+  plot(q){
+    setPrompt(`Drop a waypoint at ${P(q.x,q.y)}.`);
+    extra('<p class="muted">Tap the grid to place your point. Tap again to move it.</p>');
+  },
+  quad(q){
+    if (q.mode==='graph'){ dot(q.x,q.y); setPrompt('Where is this point?'); extra('<p class="muted">Pick the quadrant or axis for the red dot.</p>'); }
+    else { setPrompt(`Where is the point ${P(q.x,q.y)}?`); extra('<p class="muted">The grid is blank for this one. Use the signs!</p>'); }
+    const wrap=document.createElement('div'); wrap.className='choices'; wrap.setAttribute('role','group'); wrap.setAttribute('aria-label','Answer choices');
+    ['I','II','III','IV','x-axis','y-axis'].forEach(v=>{
+      const b=document.createElement('button'); b.type='button'; b.className='choice'; b.dataset.value=v; b.setAttribute('aria-pressed','false');
+      b.textContent = v.includes('axis') ? `On the ${v}` : `Quadrant ${v}`;
+      b.addEventListener('click',()=>{ if (run.answered) return; run.choice=v; wrap.querySelectorAll('.choice').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); $('#submitBtn').disabled=false; formMsg(''); });
+      wrap.appendChild(b);
+    });
+    $('#qControls').appendChild(wrap); $('#submitBtn').disabled=true;
+  },
+  set(q){
+    q.pts.forEach(p=>dot(p.x,p.y));
+    setPrompt('What are the domain and range of these points?');
+    extra(q.showList ? `<p class="setlist">${q.pts.map(p=>P(p.x,p.y)).join(', ')}</p>` : '<p class="muted">Read each point’s coordinates from the grid.</p>');
+    const f=(id,label,sub,ph)=>`<div class="field"><label for="${id}">${label} <small>${sub}</small></label><div class="brace-wrap"><span aria-hidden="true">{</span><input type="text" id="${id}" placeholder="${ph}" autocomplete="off" autocapitalize="off" spellcheck="false"><span aria-hidden="true">}</span></div></div>`;
+    $('#qControls').innerHTML = f('ansDom','Domain','(all the x-values)','like: −3, 1, 4') + f('ansRng','Range','(all the y-values)','like: 2, 5');
+  }
+};
+
+function renderQ(){
+  const q=run.qs[run.i];
+  run.answered=false; run.tries=0; run.hintUsed=false; run.sel=null; run.choice=null;
+  clearDyn(); stopSpeech();
+  const L=LEVELS[run.level-1];
+  $('#gMission').textContent=`${L.icon} ${L.name}`; $('#gCount').textContent=`Question ${run.i+1} of ${N}`;
+  updateStats(); drawProgress();
+  ['#hintBox','#feedback','#nextBtn'].forEach(s=>$(s).hidden=true);
+  const hb=$('#hintBtn'), sb=$('#submitBtn');
+  hb.hidden=false; hb.disabled=false; sb.hidden=false; sb.disabled=false;
+  $('#qExtra').innerHTML=''; $('#qControls').innerHTML=''; $('#readout').textContent=''; formMsg('');
+  quadG.style.display = q.type==='quad' ? 'none' : '';
+  const pickable=q.type==='plot';
+  svg.classList.toggle('pickable',pickable);
+  if (pickable){ svg.setAttribute('tabindex','0'); sb.disabled=true; $('#readout').textContent='Tap the grid to place your point.'; } else svg.removeAttribute('tabindex');
+  RENDER[q.type](q);
+}
+
+/* Picking */
+const canPick = () => run && !run.answered && run.qs[run.i].type==='plot';
+function setSel(x,y){
+  x=Math.max(-MAX,Math.min(MAX,x)); y=Math.max(-MAX,Math.min(MAX,y));
+  run.sel={x,y}; selG.innerHTML='';
+  if (y) el('line',{x1:x,y1:0,x2:x,y2:-y,class:'guide'},selG);
+  if (x) el('line',{x1:0,y1:-y,x2:x,y2:-y,class:'guide'},selG);
+  el('circle',{cx:x,cy:-y,r:.4,class:'sel-ring'},selG); el('circle',{cx:x,cy:-y,r:.16,class:'pt'},selG);
+  $('#readout').textContent=`Your point: ${P(x,y)}`; $('#submitBtn').disabled=false; formMsg('');
+}
+function pickAt(e){
+  const ctm=svg.getScreenCTM(); if (!ctm) return;
+  const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+  const p=pt.matrixTransform(ctm.inverse()); setSel(Math.round(p.x),Math.round(-p.y));
+}
+let dragging=false;
+svg.addEventListener('pointerdown',e=>{ if (!canPick()) return; dragging=true; try{svg.setPointerCapture(e.pointerId);}catch(_){} pickAt(e); e.preventDefault(); });
+svg.addEventListener('pointermove',e=>{ if (dragging&&canPick()) pickAt(e); });
+['pointerup','pointercancel'].forEach(t=>svg.addEventListener(t,()=>dragging=false));
+svg.addEventListener('keydown',e=>{
+  if (!canPick()) return;
+  const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,1],ArrowDown:[0,-1]}[e.key];
+  if (m){ e.preventDefault(); const s=run.sel; setSel(s?s.x+m[0]:0, s?s.y+m[1]:0); }
+  else if ((e.key==='Enter'||e.key===' ')&&run.sel){ e.preventDefault(); submit(); }
+});
+$('#qControls').addEventListener('keydown',e=>{ if (e.key==='Enter'&&e.target.tagName==='INPUT'){ e.preventDefault(); submit(); } });
+
+/* Checking */
+const nums = s => (s.replace(/[−–—]/g,'-').match(/-?\d+/g)||[]).map(Number);
+const setEq = (a,b) => { const A=new Set(a), B=new Set(b); return A.size===B.size && [...A].every(v=>B.has(v)); };
+const CHECK = {
+  plot(q){
+    const s=run.sel; if (!s){ formMsg('Tap the grid to place your point first.'); return null; }
+    let nudge='Not quite. Start at the origin: go across first, then up or down.';
+    if (s.x===q.y && s.y===q.x) nudge='Oops! You flipped the numbers. x comes first (across), then y (up or down).';
+    else if (s.x===-q.x && s.y===-q.y) nudge='Check both signs! Negative x goes left, and negative y goes down.';
+    else if (s.x===-q.x && s.y===q.y) nudge='Check the sign of x. Positive x goes right, negative x goes left.';
+    else if (s.y===-q.y && s.x===q.x) nudge='Check the sign of y. Positive y goes up, negative y goes down.';
+    else if (s.x===q.x) nudge='Your across move is right! Check the up or down move.';
+    else if (s.y===q.y) nudge='Your up or down move is right! Check the across move.';
+    return {ok:s.x===q.x&&s.y===q.y, nudge, wrong:s};
+  },
+  quad(q){
+    if (run.choice==null){ formMsg('Pick an answer first.'); return null; }
+    let nudge='Not quite. Look at the signs of x and y.';
+    if (q.answer.includes('axis') && !run.choice.includes('axis')) nudge='Look closely. One of the numbers is 0, so the point is on an axis.';
+    else if (q.answer.includes('axis')) nudge='Which number is 0? If y is 0, the point is on the x-axis. If x is 0, it’s on the y-axis.';
+    else if (run.choice.includes('axis')) nudge='Neither number is 0, so the point is inside a quadrant.';
+    return {ok:run.choice===q.answer, nudge};
+  },
+  set(q){
+    const dv=$('#ansDom').value, rv=$('#ansRng').value;
+    if (!dv.trim()||!rv.trim()){ formMsg('Fill in both boxes.'); return null; }
+    if (/[()]/.test(dv+rv)){ formMsg('Type just the numbers, not the ordered pairs. Like: −3, 1, 4'); return null; }
+    const d=nums(dv), r=nums(rv);
+    if (!d.length||!r.length){ formMsg('Type numbers with commas between them.'); return null; }
+    const dOk=setEq(d,q.dom), rOk=setEq(r,q.rng);
+    let nudge;
+    if (setEq(d,q.rng)&&setEq(r,q.dom)) nudge='Oops! You switched them. Domain uses the x-values (first numbers). Range uses the y-values (second numbers).';
+    else if (dOk) nudge='Your domain is right! Check your range: it’s all the y-values.';
+    else if (rOk) nudge='Your range is right! Check your domain: it’s all the x-values.';
+    else nudge='Not quite. Domain is every x-value, and range is every y-value.';
+    if (!dOk || !rOk) { const neg=[...q.dom,...q.rng].some(v=>v<0), typedNeg=/[-−–]/.test(dv+rv); if (neg && !typedNeg) nudge+=' Don’t forget the negative signs!'; }
+    return {ok:dOk&&rOk, nudge};
+  }
+};
+const REVEAL = {
+  plot(q){ dot(q.x,q.y,'pt ok'); labelAt(q.x,q.y,P(q.x,q.y)); fly(q.x,q.y); return plotSteps(q.x,q.y); },
+  quad(q){
+    document.querySelectorAll('#qControls .choice').forEach(b=>{ if (b.dataset.value===q.answer) b.classList.add('right'); });
+    if (q.mode==='text') dot(q.x,q.y);
+    labelAt(q.x,q.y,P(q.x,q.y)); quadG.style.display='';
+    return quadSteps(q.x,q.y);
+  },
+  set(q){ q.pts.forEach(p=>labelAt(p.x,p.y,P(p.x,p.y))); return setSteps(q); }
+};
+
+const CHEERS=['Great flying!','Nailed it!','Smooth landing!','Right on target!','Awesome!'];
+function submit(){
+  if (!run||run.answered) return;
+  formMsg('');
+  const q=run.qs[run.i], res=CHECK[q.type](q);
+  if (!res) return;
+  const fb=$('#feedback');
+  if (!res.ok && run.tries===0){
+    run.tries=1;
+    fb.className='feedback retry';
+    fb.innerHTML=`<p class="fb-title">Try again! <span class="fb-stars">1 more try</span></p><p>${esc(res.nudge)}</p>`;
+    fb.hidden=false;
+    if (q.type==='plot'){ run.sel=null; selG.innerHTML=''; $('#readout').textContent='Tap the grid to try again.'; $('#submitBtn').disabled=true; }
+    if (q.type==='quad'){ const b=document.querySelector(`#qControls .choice[data-value="${run.choice}"]`); b.classList.add('ruled-out'); b.disabled=true; b.setAttribute('aria-pressed','false'); run.choice=null; $('#submitBtn').disabled=true; }
+    return;
+  }
+  run.answered=true; selG.innerHTML=''; $('#readout').textContent='';
+  if (!res.ok && res.wrong) markWrong(res.wrong.x,res.wrong.y);
+  const explain=REVEAL[q.type](q);
+  const stars = res.ok ? ((run.tries===0&&!run.hintUsed)?2:1) : 0;
+  if (res.ok){ run.correct++; run.stars+=stars; }
+  run.results[run.i]=res.ok; updateStats(); drawProgress();
+  svg.classList.remove('pickable'); svg.removeAttribute('tabindex');
+  fb.className='feedback '+(res.ok?'ok':'bad');
+  fb.innerHTML = res.ok
+    ? `<p class="fb-title">${pick(CHEERS)} <span class="fb-stars">${'⭐'.repeat(stars)} +${stars}</span></p>${stars===1?'<p>Get it on your first try with no hint for 2 stars.</p>':''}`
+    : `<p class="fb-title">Let’s look together</p><div class="explain">${explain}</div>`;
+  fb.hidden=false;
+  $('#qControls').querySelectorAll('input,button').forEach(e=>e.disabled=true);
+  $('#submitBtn').hidden=true; $('#hintBtn').hidden=true;
+  const nb=$('#nextBtn'); nb.textContent = run.i===N-1 ? 'See my certificate 🏅' : 'Next question'; nb.hidden=false;
+  try { fb.scrollIntoView({block:'nearest',behavior:reduceMotion?'auto':'smooth'}); } catch(_) {}
+  nb.focus({preventScroll:true});
+}
+$('#submitBtn').addEventListener('click',submit);
+$('#hintBtn').addEventListener('click',()=>{
+  if (!run||run.answered) return;
+  run.hintUsed=true; const q=run.qs[run.i];
+  const hb=$('#hintBox'); hb.innerHTML='💡 '+esc(HINTS[q.type](q)); hb.hidden=false; $('#hintBtn').disabled=true;
+});
+$('#nextBtn').addEventListener('click',()=>{ run.i++; if (run.i>=N) finish(); else { renderQ(); window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'}); } });
+$('#quitBtn').addEventListener('click',()=>{ clearDyn(); stopSpeech(); run=null; renderBoard(); show('board'); });
+
+/* Read aloud */
+function stopSpeech(){ try { window.speechSynthesis && speechSynthesis.cancel(); } catch(_) {} }
+$('#speakBtn').addEventListener('click',()=>{
+  if (!('speechSynthesis' in window)) return;
+  stopSpeech();
+  const t=($('#qPrompt').textContent+' '+$('#qExtra').innerText).replace(/−/g,' negative ').replace(/[(){}]/g,' ');
+  const u=new SpeechSynthesisUtterance(t); u.rate=.92; speechSynthesis.speak(u);
+});
+if (!('speechSynthesis' in window)) { $('#speakBtn').hidden=true; $('#bSpeak').hidden=true; }
+
+/* Results */
+function finish(){
+  clearDyn();
+  const lvl=run.level, passed=run.correct>=PASS;
+  store.best[lvl]=Math.max(store.best[lvl]||0,run.stars);
+  if (passed){ store.passed[lvl]=true; if (lvl<3 && store.unlocked<lvl+1) store.unlocked=lvl+1; }
+  save();
+  $('#rIcon').textContent = passed ? (lvl===3?'🏆':'🏅') : '🛫';
+  $('#rTitle').textContent = passed ? 'Mission complete!' : 'Almost there!';
+  $('#rStarsBig').textContent = '⭐'.repeat(run.stars);
+  $('#rName').textContent = store.name;
+  $('#rMission').textContent = `${lvl}. ${LEVELS[lvl-1].name}`;
+  $('#rCorrect').textContent = `${run.correct} out of ${N}`;
+  $('#rStars').textContent = `${run.stars} out of ${N*2}`;
+  $('#rDate').textContent = new Date().toLocaleString([],{dateStyle:'medium',timeStyle:'short'});
+  $('#rNote').textContent = passed
+    ? (lvl<3 ? `You unlocked ${LEVELS[lvl].name}!` : 'You finished all three missions. You’re a Coordinate Pilot!')
+    : `You need ${PASS} right to pass, and you got ${run.correct}. The questions change every time, so try again!`;
+  $('#nextMissionBtn').hidden = !(passed && lvl<3);
+  show('results');
+}
+$('#againBtn').addEventListener('click',()=>startLevel(run.level));
+$('#nextMissionBtn').addEventListener('click',()=>startLevel(run.level+1));
+$('#boardBtn').addEventListener('click',()=>{ run=null; renderBoard(); show('board'); });
+
+/* Board */
+function renderBoard(){
+  const ol=$('#missions'); ol.innerHTML='';
+  LEVELS.forEach(L=>{
+    const locked=L.id>store.unlocked, passed=!!store.passed[L.id], best=store.best[L.id];
+    const status = locked ? `🔒 Pass ${LEVELS[L.id-2].name} to unlock.` : passed ? `✅ Passed! Best: ${best} stars` : best!=null ? `Best: ${best} stars. Not passed yet.` : 'Ready for takeoff!';
+    const li=document.createElement('li'); li.className='mission'+(locked?' locked':'')+(passed?' passed':'');
+    li.innerHTML=`<span class="m-badge" aria-hidden="true">${L.icon}</span><div class="m-info"><h2>${L.id}. ${L.name}</h2><p>${L.desc}</p><p class="m-status">${esc(status)}</p></div><button class="primary" type="button" data-start="${L.id}" ${locked?'disabled':''}>${locked?'Locked':(best!=null?'Play again':'Start')}</button>`;
+    ol.appendChild(li);
+  });
+}
+$('#missions').addEventListener('click',e=>{ const b=e.target.closest('[data-start]'); if (b&&!b.disabled) startLevel(+b.dataset.start); });
+$('#pilotName').addEventListener('input',()=>{ $('#nameMsg').textContent = /\S\s+\S/.test($('#pilotName').value) ? 'Just your first name is perfect. You can leave off your last name.' : ''; });
+$('#unlockBtn').addEventListener('click',()=>{
+  if ($('#teacherCode').value.trim().toUpperCase()===TEACHER_CODE){ store.unlocked=3; save(); renderBoard(); $('#teacherMsg').textContent='All missions are unlocked on this device.'; }
+  else $('#teacherMsg').textContent='That code didn’t work. Check the spelling and try again.';
+  $('#teacherCode').value='';
+});
+$('#teacherCode').addEventListener('keydown',e=>{ if (e.key==='Enter') $('#unlockBtn').click(); });
+$('#resetBtn').addEventListener('click',()=>{ store.unlocked=1; store.best={}; store.passed={}; save(); renderBoard(); $('#teacherMsg').textContent='Progress reset. Only Waypoint Drop is unlocked now.'; });
+
+$('#pilotName').value=store.name||'';
+renderBoard();
+show('board');
+})();
+</script>
+</body>
+</html>
